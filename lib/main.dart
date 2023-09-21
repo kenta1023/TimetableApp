@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'db_helper.dart';
+import 'package:timetable_app/tabs/home_tab.dart';
+import 'package:timetable_app/tabs/timetable_tab.dart';
+import 'package:timetable_app/tabs/edit_tab.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key); // super.keyをKey? keyに変更しました
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
@@ -31,38 +33,19 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<CardData> cardListData = [];
+  int _selectedIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadClassPeriodData();
-    _loadTimetableData();
-  }
-
-  _loadClassPeriodData() async {
-    final db = DatabaseHelper.instance;
-    final List<ClassPeriod> classPeriods = await db.getAllClassPeriods();
-
-    // ここでClassPeriodのデータを適切な形式に変換して、UIで表示することができます
-  }
-
-  _loadTimetableData() async {
-    final db = DatabaseHelper.instance;
-    final List<Timetable> timetables = await db.getAllTimetables();
-    // 取得したデータをcardListDataに変換
-    for (var timetable in timetables) {
-      cardListData.add(
-        CardData(
-          timetable.subject,
-          timetable.subject,
-          timetable.classroom,
-          timetable.period.toString(),
-        ),
-      );
+  Widget _buildBody() {
+    switch (_selectedIndex) {
+      case 0:
+        return const HomeTab();
+      case 1:
+        return const TimetableTab();
+      case 2:
+        return const EditTab();
+      default:
+        return Container();
     }
-    // 状態を更新
-    setState(() {});
   }
 
   @override
@@ -72,27 +55,7 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Container(
-        padding: const EdgeInsets.all(16),
-        child: ListView.builder(
-          itemCount: cardListData.length,
-          itemBuilder: (context, index) {
-            return Card(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Text("授業までのカウントダウン: ${cardListData[index].countdown}"),
-                    Text("授業名: ${cardListData[index].className}"),
-                    Text("授業場所: ${cardListData[index].location}"),
-                    Text("授業時間: ${cardListData[index].classTime}"),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+      body: _buildBody(), // タイポを修正しました。'Body' は 'body' でなければなりません。
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -108,16 +71,9 @@ class _MyHomePageState extends State<MyHomePage> {
             label: '追加・削除',
           ),
         ],
+        currentIndex: _selectedIndex,
+        onTap: (index) => setState(() => _selectedIndex = index),
       ),
     );
   }
-}
-
-class CardData {
-  final String countdown;
-  final String className;
-  final String location;
-  final String classTime;
-
-  CardData(this.countdown, this.className, this.location, this.classTime);
 }
