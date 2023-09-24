@@ -35,27 +35,6 @@ class _EditTabState extends State<EditTab> {
     _setClassPeriodsDataIfExist();
   }
 
-  void _setTimetableDataIfExist() async {
-    // データベースの中から、`dayOfWeek`と`period`が一致するデータを取得
-    Timetable? matchedTimetable;
-    try {
-      matchedTimetable = timetables.firstWhere((table) =>
-          table.dayOfWeek == selectedDayOfWeek[0] &&
-          table.period.toString() == selectedPeriod[0]);
-    } catch (e) {
-      matchedTimetable = null;
-    }
-    if (matchedTimetable != null) {
-      // もし該当するデータがあれば、テキストをセット
-      classNameController.text = matchedTimetable.subject;
-      classroomNameController.text = matchedTimetable.classroom;
-    } else {
-      // もし該当するデータがなければ、テキストをクリア
-      classNameController.text = "";
-      classroomNameController.text = "";
-    }
-  }
-
   void _setClassPeriodsDataIfExist() async {
     // データベースから取得したデータの中から、`period`が一致するデータを取得
     ClassPeriod? matchedClassPeriod;
@@ -84,6 +63,27 @@ class _EditTabState extends State<EditTab> {
     }
   }
 
+  void _setTimetableDataIfExist() async {
+    // データベースの中から、`dayOfWeek`と`period`が一致するデータを取得
+    Timetable? matchedTimetable;
+    try {
+      matchedTimetable = timetables.firstWhere((table) =>
+          table.dayOfWeek == selectedDayOfWeek[0] &&
+          table.period.toString() == selectedPeriod[0]);
+    } catch (e) {
+      matchedTimetable = null;
+    }
+    if (matchedTimetable != null) {
+      // もし該当するデータがあれば、テキストをセット
+      classNameController.text = matchedTimetable.subject;
+      classroomNameController.text = matchedTimetable.classroom;
+    } else {
+      // もし該当するデータがなければ、テキストをクリア
+      classNameController.text = "";
+      classroomNameController.text = "";
+    }
+  }
+
   Future<void> _selectStartTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -105,6 +105,28 @@ class _EditTabState extends State<EditTab> {
       setState(() {
         endTime = picked;
       });
+    }
+  }
+
+  Future<bool> _updateClassPeriod(
+      int period, String startTime, String endTime) async {
+    final db = DatabaseHelper.instance;
+    final newClassPeriod = ClassPeriod(
+      period: period,
+      startTime: startTime,
+      endTime: endTime,
+    );
+    try {
+      int result = await db.insertClassPeriod(newClassPeriod);
+      if (result != 0) {
+        // データベースからデータを再取得
+        classPeriods = await db.getAllClassPeriods();
+      }
+      _setClassPeriodsDataIfExist();
+      return result != 0;
+    } catch (e) {
+      _setClassPeriodsDataIfExist();
+      return false;
     }
   }
 
@@ -147,28 +169,6 @@ class _EditTabState extends State<EditTab> {
     }
   }
 
-  Future<bool> _updateClassPeriod(
-      int period, String startTime, String endTime) async {
-    final db = DatabaseHelper.instance;
-    final newClassPeriod = ClassPeriod(
-      period: period,
-      startTime: startTime,
-      endTime: endTime,
-    );
-    try {
-      int result = await db.insertClassPeriod(newClassPeriod);
-      if (result != 0) {
-        // データベースからデータを再取得
-        classPeriods = await db.getAllClassPeriods();
-      }
-      _setClassPeriodsDataIfExist();
-      return result != 0;
-    } catch (e) {
-      _setClassPeriodsDataIfExist();
-      return false;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -178,6 +178,122 @@ class _EditTabState extends State<EditTab> {
           Container(
             padding: const EdgeInsets.all(10.0),
             margin: const EdgeInsets.symmetric(vertical: 8.0),
+            decoration: BoxDecoration(
+              color: Colors.green[100], // Container color
+              borderRadius: BorderRadius.circular(10), // Rounded corners
+            ),
+            child: Column(
+              children: [
+                const Text("授業時間設定",
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Flexible(
+                      child: DropdownButtonFormField(
+                        value: selectedPeriodSetTime,
+                        decoration: const InputDecoration(
+                          labelText: '時限',
+                        ),
+                        items: [
+                          '1時限',
+                          '2時限',
+                          '3時限',
+                          '4時限',
+                          '5時限',
+                          '6時限',
+                          '7時限',
+                          '8時限'
+                        ]
+                            .map((time) => DropdownMenuItem(
+                                  value: time,
+                                  child: Text(time),
+                                ))
+                            .toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedPeriodSetTime = newValue as String;
+                          });
+                          _setClassPeriodsDataIfExist();
+                        },
+                      ),
+                    ),
+                    Flexible(
+                      child: TextButton(
+                          onPressed: () => _selectStartTime(context),
+                          child: Column(
+                            children: [
+                              const Text(
+                                "開始",
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                    fontSize: 10, color: Colors.black),
+                              ),
+                              Text(
+                                '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}',
+                                style: const TextStyle(fontSize: 25),
+                              )
+                            ],
+                          )),
+                    ),
+                    Flexible(
+                      child: TextButton(
+                          onPressed: () => _selectEndTime(context),
+                          child: Column(
+                            children: [
+                              const Text(
+                                "終了",
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                    fontSize: 10, color: Colors.black),
+                              ),
+                              Text(
+                                '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}',
+                                style: const TextStyle(fontSize: 25),
+                              )
+                            ],
+                          )),
+                    ),
+                  ],
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    String startTimeString =
+                        '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}';
+                    String endTimeString =
+                        '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}';
+                    _updateClassPeriod(int.parse(selectedPeriodSetTime[0]),
+                            startTimeString, endTimeString)
+                        .then((success) {
+                      if (success == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: Colors.greenAccent,
+                            content: Text(
+                              '${selectedPeriodSetTime[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
+                              style: const TextStyle(color: Colors.black),
+                            ),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            backgroundColor: Colors.redAccent,
+                            content: Text('登録/更新に失敗しました',
+                                style: TextStyle(color: Colors.black)),
+                          ),
+                        );
+                      }
+                    });
+                  },
+                  child: const Text('授業時間を登録'),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(10.0),
+            margin: const EdgeInsets.symmetric(vertical: 32.0),
             decoration: BoxDecoration(
               color: Colors.blue[100], // Container color
               borderRadius: BorderRadius.circular(10), // Rounded corners
@@ -316,122 +432,6 @@ class _EditTabState extends State<EditTab> {
                       child: const Text('　削除　'),
                     ),
                   ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(10.0),
-            margin: const EdgeInsets.symmetric(vertical: 32.0),
-            decoration: BoxDecoration(
-              color: Colors.green[100], // Container color
-              borderRadius: BorderRadius.circular(10), // Rounded corners
-            ),
-            child: Column(
-              children: [
-                const Text("授業時間設定",
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Row(
-                  children: [
-                    Flexible(
-                      child: DropdownButtonFormField(
-                        value: selectedPeriodSetTime,
-                        decoration: const InputDecoration(
-                          labelText: '時限',
-                        ),
-                        items: [
-                          '1時限',
-                          '2時限',
-                          '3時限',
-                          '4時限',
-                          '5時限',
-                          '6時限',
-                          '7時限',
-                          '8時限'
-                        ]
-                            .map((time) => DropdownMenuItem(
-                                  value: time,
-                                  child: Text(time),
-                                ))
-                            .toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            selectedPeriodSetTime = newValue as String;
-                          });
-                          _setClassPeriodsDataIfExist();
-                        },
-                      ),
-                    ),
-                    Flexible(
-                      child: TextButton(
-                          onPressed: () => _selectStartTime(context),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "開始",
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                    fontSize: 10, color: Colors.black),
-                              ),
-                              Text(
-                                '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}',
-                                style: const TextStyle(fontSize: 25),
-                              )
-                            ],
-                          )),
-                    ),
-                    Flexible(
-                      child: TextButton(
-                          onPressed: () => _selectEndTime(context),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "終了",
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                    fontSize: 10, color: Colors.black),
-                              ),
-                              Text(
-                                '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}',
-                                style: const TextStyle(fontSize: 25),
-                              )
-                            ],
-                          )),
-                    ),
-                  ],
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    String startTimeString =
-                        '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}';
-                    String endTimeString =
-                        '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}';
-                    _updateClassPeriod(int.parse(selectedPeriodSetTime[0]),
-                            startTimeString, endTimeString)
-                        .then((success) {
-                      if (success == true) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: Colors.greenAccent,
-                            content: Text(
-                              '${selectedPeriodSetTime[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
-                              style: const TextStyle(color: Colors.black),
-                            ),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            backgroundColor: Colors.redAccent,
-                            content: Text('登録/更新に失敗しました',
-                                style: TextStyle(color: Colors.black)),
-                          ),
-                        );
-                      }
-                    });
-                  },
-                  child: const Text('授業時間を登録'),
                 ),
               ],
             ),
