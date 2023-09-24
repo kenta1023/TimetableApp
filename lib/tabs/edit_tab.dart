@@ -71,6 +71,16 @@ class _EditTabState extends State<EditTab> {
     }
   }
 
+  Future<bool> _deleteTimetable(String dayOfWeek, int period) async {
+    final db = DatabaseHelper.instance;
+    try {
+      int result = await db.deleteByDayAndPeriod(dayOfWeek, period);
+      return result != 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<bool> _updateClassPeriod(
       int period, String startTime, String endTime) async {
     final db = DatabaseHelper.instance;
@@ -205,7 +215,30 @@ class _EditTabState extends State<EditTab> {
                     const SizedBox(width: 20),
                     ElevatedButton(
                       onPressed: () {
-                        // Process the information when the registration button is pressed
+                        _deleteTimetable(
+                                selectedDayOfWeek[0],
+                                int.parse(selectedPeriod[0]))
+                            .then((success) {
+                          if (success == true) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: Colors.greenAccent,
+                                content: Text(
+                                  '$selectedDayOfWeek曜日${int.parse(selectedPeriod[0])}限${classNameController.text} \n削除しました',
+                                  style: const TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.redAccent,
+                                content: Text('削除に失敗しました',
+                                    style: TextStyle(color: Colors.black)),
+                              ),
+                            );
+                          }
+                        });
                       },
                       child: const Text('　削除　'),
                     ),
@@ -216,7 +249,7 @@ class _EditTabState extends State<EditTab> {
           ),
           Container(
             padding: const EdgeInsets.all(10.0),
-            margin: const EdgeInsets.symmetric(vertical: 8.0),
+            margin: const EdgeInsets.symmetric(vertical: 32.0),
             decoration: BoxDecoration(
               color: Colors.green[100], // Container color
               borderRadius: BorderRadius.circular(10), // Rounded corners
@@ -296,12 +329,12 @@ class _EditTabState extends State<EditTab> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    String startTimeString = '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}';
-                    String endTimeString = '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}';
-                    _updateClassPeriod(
-                            int.parse(selectedPeriodSetTime[0]),
-                            startTimeString,
-                            endTimeString)
+                    String startTimeString =
+                        '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}';
+                    String endTimeString =
+                        '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}';
+                    _updateClassPeriod(int.parse(selectedPeriodSetTime[0]),
+                            startTimeString, endTimeString)
                         .then((success) {
                       if (success == true) {
                         ScaffoldMessenger.of(context).showSnackBar(

@@ -136,6 +136,15 @@ class DatabaseHelper {
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<int> deleteByDayAndPeriod(String dayOfWeek, int period) async {
+    Database db = await database;
+    return await db.delete(
+      timetableTable,
+      where: '$timetableDayOfWeek = ? AND $timetablePeriod = ?',
+      whereArgs: [dayOfWeek, period],
+    );
+  }
+
   Future<int> insertClassPeriod(ClassPeriod classPeriod) async {
     Database db = await database;
     return await db.insert(classPeriodTable, classPeriod.toMap(),
