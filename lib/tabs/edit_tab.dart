@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../db_helper.dart';
 
 class EditTab extends StatefulWidget {
   const EditTab({Key? key}) : super(key: key);
@@ -20,6 +21,13 @@ class _EditTabState extends State<EditTab> {
   @override
   void initState() {
     super.initState();
+    _loadData();
+  }
+
+  _loadData() async {
+    final db = DatabaseHelper.instance;
+    final List<Timetable> timetables = await db.getAllTimetables();
+    final List<ClassPeriod> classPeriods = await db.getAllClassPeriods();
   }
 
   Future<void> _selectStartTime(BuildContext context) async {
@@ -43,6 +51,39 @@ class _EditTabState extends State<EditTab> {
       setState(() {
         endTime = picked;
       });
+    }
+  }
+
+  Future<bool> _updateTimetable(
+      String subject, String classroom, String dayOfWeek, int period) async {
+    final db = DatabaseHelper.instance;
+    final newTimetable = Timetable(
+      subject: subject,
+      classroom: classroom,
+      dayOfWeek: dayOfWeek,
+      period: period,
+    );
+    try {
+      int result = await db.insertTimetable(newTimetable);
+      return result != 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> _updateClassPeriod(
+      int period, String startTime, String endTime) async {
+    final db = DatabaseHelper.instance;
+    final newClassPeriod = ClassPeriod(
+      period: period,
+      startTime: startTime,
+      endTime: endTime,
+    );
+    try {
+      int result = await db.insertClassPeriod(newClassPeriod);
+      return result != 0;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -131,8 +172,33 @@ class _EditTabState extends State<EditTab> {
                   mainAxisAlignment: MainAxisAlignment.center, // ウィジェットを中央に配置
                   children: [
                     ElevatedButton(
-                      onPressed: () {
-                        // Process the information when the registration button is pressed
+                      onPressed: () async {
+                        _updateTimetable(
+                                classNameController.text,
+                                classroomNameController.text,
+                                selectedDayOfWeek[0],
+                                int.parse(selectedPeriod[0]))
+                            .then((success) {
+                          if (success == true) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: Colors.greenAccent,
+                                content: Text(
+                                  '$selectedDayOfWeek曜日${int.parse(selectedPeriod[0])}限${classNameController.text} \n登録/更新しました',
+                                  style: const TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.redAccent,
+                                content: Text('登録/更新に失敗しました',
+                                    style: TextStyle(color: Colors.black)),
+                              ),
+                            );
+                          }
+                        });
                       },
                       child: const Text('登録/更新'),
                     ),
@@ -229,7 +295,35 @@ class _EditTabState extends State<EditTab> {
                   ],
                 ),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () async {
+                    String startTimeString = '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}';
+                    String endTimeString = '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}';
+                    _updateClassPeriod(
+                            int.parse(selectedPeriodSetTime[0]),
+                            startTimeString,
+                            endTimeString)
+                        .then((success) {
+                      if (success == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: Colors.greenAccent,
+                            content: Text(
+                              '${selectedPeriodSetTime[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
+                              style: const TextStyle(color: Colors.black),
+                            ),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            backgroundColor: Colors.redAccent,
+                            content: Text('登録/更新に失敗しました',
+                                style: TextStyle(color: Colors.black)),
+                          ),
+                        );
+                      }
+                    });
+                  },
                   child: const Text('授業時間を登録'),
                 ),
               ],
