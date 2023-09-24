@@ -13,21 +13,75 @@ class _EditTabState extends State<EditTab> {
   late String selectedDayOfWeek = '月曜日';
   late String selectedPeriod = '1時限';
   late String selectedPeriodSetTime = '1時限';
-  late TimeOfDay startTime = const TimeOfDay(hour: 8, minute: 0);
-  late TimeOfDay endTime = const TimeOfDay(hour: 9, minute: 0);
+  late TimeOfDay startTime = const TimeOfDay(hour: 0, minute: 0);
+  late TimeOfDay endTime = const TimeOfDay(hour: 0, minute: 0);
   final TextEditingController classNameController = TextEditingController();
   final TextEditingController classroomNameController = TextEditingController();
+  late List<Timetable> timetables;
+  late List<ClassPeriod> classPeriods;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _fetchData();
   }
 
-  _loadData() async {
+  // データベースからデータを取得(この関数はinitState()内のみで呼び出されます）
+  void _fetchData() async {
     final db = DatabaseHelper.instance;
-    final List<Timetable> timetables = await db.getAllTimetables();
-    final List<ClassPeriod> classPeriods = await db.getAllClassPeriods();
+    timetables = await db.getAllTimetables();
+    classPeriods = await db.getAllClassPeriods();
+    _setTimetableDataIfExist();
+    _setClassPeriodsDataIfExist();
+  }
+
+  void _setTimetableDataIfExist() async {
+    // データベースの中から、`dayOfWeek`と`period`が一致するデータを取得
+    Timetable? matchedTimetable;
+    try {
+      matchedTimetable = timetables.firstWhere((table) =>
+          table.dayOfWeek == selectedDayOfWeek[0] &&
+          table.period.toString() == selectedPeriod[0]);
+    } catch (e) {
+      matchedTimetable = null;
+    }
+    if (matchedTimetable != null) {
+      // もし該当するデータがあれば、テキストをセット
+      classNameController.text = matchedTimetable.subject;
+      classroomNameController.text = matchedTimetable.classroom;
+    } else {
+      // もし該当するデータがなければ、テキストをクリア
+      classNameController.text = "";
+      classroomNameController.text = "";
+    }
+  }
+
+  void _setClassPeriodsDataIfExist() async {
+    // データベースから取得したデータの中から、`period`が一致するデータを取得
+    ClassPeriod? matchedClassPeriod;
+    try {
+      matchedClassPeriod = classPeriods.firstWhere(
+          (table) => table.period.toString() == selectedPeriodSetTime[0]);
+    } catch (e) {
+      matchedClassPeriod = null;
+    }
+    if (matchedClassPeriod != null) {
+      // もし該当するデータがあれば、startTimeとendTimeをセット
+      final List<String> startParts = matchedClassPeriod.startTime.split(':');
+      final List<String> endParts = matchedClassPeriod.endTime.split(':');
+      setState(() {
+        startTime = TimeOfDay(
+            hour: int.parse(startParts[0]), minute: int.parse(startParts[1]));
+        endTime = TimeOfDay(
+            hour: int.parse(endParts[0]), minute: int.parse(endParts[1]));
+      });
+    } else {
+      // 該当するデータがなければ、デフォルトのstartTimeとendTimeをセット（オプション、必要に応じて調整）
+      setState(() {
+        startTime = const TimeOfDay(hour: 0, minute: 0);
+        endTime = const TimeOfDay(hour: 0, minute: 0);
+      });
+    }
   }
 
   Future<void> _selectStartTime(BuildContext context) async {
@@ -65,8 +119,14 @@ class _EditTabState extends State<EditTab> {
     );
     try {
       int result = await db.insertTimetable(newTimetable);
+      if (result != 0) {
+        // データベースからデータを再取得
+        timetables = await db.getAllTimetables();
+      }
+      _setTimetableDataIfExist();
       return result != 0;
     } catch (e) {
+      _setTimetableDataIfExist();
       return false;
     }
   }
@@ -75,8 +135,14 @@ class _EditTabState extends State<EditTab> {
     final db = DatabaseHelper.instance;
     try {
       int result = await db.deleteByDayAndPeriod(dayOfWeek, period);
+      if (result != 0) {
+        // データベースからデータを再取得
+        timetables = await db.getAllTimetables();
+      }
+      _setTimetableDataIfExist();
       return result != 0;
     } catch (e) {
+      _setTimetableDataIfExist();
       return false;
     }
   }
@@ -91,8 +157,14 @@ class _EditTabState extends State<EditTab> {
     );
     try {
       int result = await db.insertClassPeriod(newClassPeriod);
+      if (result != 0) {
+        // データベースからデータを再取得
+        classPeriods = await db.getAllClassPeriods();
+      }
+      _setClassPeriodsDataIfExist();
       return result != 0;
     } catch (e) {
+      _setClassPeriodsDataIfExist();
       return false;
     }
   }
@@ -133,6 +205,7 @@ class _EditTabState extends State<EditTab> {
                           setState(() {
                             selectedDayOfWeek = newValue as String;
                           });
+                          _setTimetableDataIfExist();
                         },
                       ),
                     ),
@@ -161,6 +234,7 @@ class _EditTabState extends State<EditTab> {
                           setState(() {
                             selectedPeriod = newValue as String;
                           });
+                          _setTimetableDataIfExist();
                         },
                       ),
                     )
@@ -215,8 +289,7 @@ class _EditTabState extends State<EditTab> {
                     const SizedBox(width: 20),
                     ElevatedButton(
                       onPressed: () {
-                        _deleteTimetable(
-                                selectedDayOfWeek[0],
+                        _deleteTimetable(selectedDayOfWeek[0],
                                 int.parse(selectedPeriod[0]))
                             .then((success) {
                           if (success == true) {
@@ -286,6 +359,7 @@ class _EditTabState extends State<EditTab> {
                           setState(() {
                             selectedPeriodSetTime = newValue as String;
                           });
+                          _setClassPeriodsDataIfExist();
                         },
                       ),
                     ),
