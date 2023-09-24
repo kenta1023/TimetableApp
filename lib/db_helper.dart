@@ -113,7 +113,7 @@ class DatabaseHelper {
     await db.execute('''
     CREATE TABLE $classPeriodTable (
       $classPeriodId INTEGER PRIMARY KEY AUTOINCREMENT,
-      $classPeriodPeriod INTEGER NOT NULL,
+      $classPeriodPeriod INTEGER NOT NULL UNIQUE CHECK ($classPeriodPeriod BETWEEN 1 AND 8),
       $classPeriodStartTime TEXT NOT NULL,
       $classPeriodEndTime TEXT NOT NULL
     )
@@ -132,12 +132,14 @@ class DatabaseHelper {
 
   Future<int> insertTimetable(Timetable timetable) async {
     Database db = await database;
-    return await db.insert(timetableTable, timetable.toMap());
+    return await db.insert(timetableTable, timetable.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<int> insertClassPeriod(ClassPeriod classPeriod) async {
     Database db = await database;
-    return await db.insert(classPeriodTable, classPeriod.toMap());
+    return await db.insert(classPeriodTable, classPeriod.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<Timetable>> getAllTimetables() async {
@@ -149,6 +151,8 @@ class DatabaseHelper {
   Future<List<ClassPeriod>> getAllClassPeriods() async {
     Database db = await database;
     var res = await db.query(classPeriodTable);
-    return res.isNotEmpty ? res.map((c) => ClassPeriod.fromMap(c)).toList(): [];
+    return res.isNotEmpty
+        ? res.map((c) => ClassPeriod.fromMap(c)).toList()
+        : [];
   }
 }
