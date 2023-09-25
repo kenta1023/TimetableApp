@@ -94,6 +94,7 @@ class _EditTabState extends State<EditTab> {
   Future<void> _selectStartTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
+      initialEntryMode: TimePickerEntryMode.input,
       initialTime: startTime,
     );
     if (picked != null && picked != startTime) {
@@ -106,6 +107,7 @@ class _EditTabState extends State<EditTab> {
   Future<void> _selectEndTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
+      initialEntryMode: TimePickerEntryMode.input,
       initialTime: endTime,
     );
     if (picked != null && picked != endTime) {
