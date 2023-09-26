@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 
 class Timetable {
   int? id;
@@ -158,12 +160,14 @@ class DatabaseHelper {
   }
 
   Future<List<Timetable>> getTimetablesToday() async {
+    initializeDateFormatting('ja');
     Database db = await database;
     var now = DateTime.now();
-    List<String> weekdayString = ["", "月", "火", "水", "木", "金", "土", "日"];
+    final dateFormatForDayOfWeek = DateFormat.E('ja');
+    final formatStrForDayOfWeek = dateFormatForDayOfWeek.format(now);
     var res = await db.query(timetableTable,
         where: '$timetableDayOfWeek = ?',
-        whereArgs: [weekdayString[now.weekday]],
+        whereArgs: [formatStrForDayOfWeek],
         orderBy: '$timetablePeriod ASC');
     return res.isNotEmpty ? res.map((c) => Timetable.fromMap(c)).toList() : [];
   }
