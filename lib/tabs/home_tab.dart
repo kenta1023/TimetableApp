@@ -16,6 +16,7 @@ class _HomeTabState extends State<HomeTab> {
   late List<CardData> cardListData = [];
   late List<ClassPeriod> classPeriods;
   late List<Timetable> timetables;
+  DateTime _currentDate = DateTime.now();
   Timer? _timer;
 
   @override
@@ -36,6 +37,12 @@ class _HomeTabState extends State<HomeTab> {
 
   _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      DateTime now = DateTime.now();
+      if (now.day != _currentDate.day) {
+        // 日付が変わったらデータベースからデータを再取得
+        _loadData();
+      }
+      _currentDate = now;
       _setCardData();
     });
   }
