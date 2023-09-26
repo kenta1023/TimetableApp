@@ -106,7 +106,7 @@ class DatabaseHelper {
       $timetableSubject TEXT NOT NULL,
       $timetableClassroom TEXT NOT NULL,
       $timetableDayOfWeek TEXT NOT NULL,
-      $timetablePeriod INTEGER NOT NULL,
+      $timetablePeriod INTEGER NOT NULL CHECK ($classPeriodPeriod BETWEEN 1 AND 8),
       UNIQUE ($timetableDayOfWeek, $timetablePeriod)
     )
   ''');
@@ -154,6 +154,17 @@ class DatabaseHelper {
   Future<List<Timetable>> getAllTimetables() async {
     Database db = await database;
     var res = await db.query(timetableTable);
+    return res.isNotEmpty ? res.map((c) => Timetable.fromMap(c)).toList() : [];
+  }
+
+  Future<List<Timetable>> getTimetablesToday() async {
+    Database db = await database;
+    var now = DateTime.now();
+    List<String> weekdayString = ["", "月", "火", "水", "木", "金", "土", "日"];
+    var res = await db.query(timetableTable,
+        where: '$timetableDayOfWeek = ?',
+        whereArgs: [weekdayString[now.weekday]],
+        orderBy: '$timetablePeriod ASC');
     return res.isNotEmpty ? res.map((c) => Timetable.fromMap(c)).toList() : [];
   }
 
