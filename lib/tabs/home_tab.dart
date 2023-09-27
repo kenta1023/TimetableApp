@@ -13,9 +13,9 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-  late List<CardData> cardListData = [];
-  late List<ClassPeriod> classPeriods;
-  late List<Timetable> timetables;
+  List<CardData> cardListData = [];
+  List<ClassPeriod> classPeriods = [];
+  List<Timetable> timetables = [];
   DateTime _currentDate = DateTime.now();
   Timer? _timer;
 
