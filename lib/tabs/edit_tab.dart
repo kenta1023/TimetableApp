@@ -321,7 +321,7 @@ class _EditTabState extends State<EditTab> {
                         decoration: const InputDecoration(
                           labelText: '曜日',
                         ),
-                        items: ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日']
+                        items: ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日',"土曜日","日曜日"]
                             .map((day) => DropdownMenuItem(
                                   value: day,
                                   child: Text(day),
