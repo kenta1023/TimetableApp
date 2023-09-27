@@ -97,21 +97,13 @@ class DatabaseHelper {
   _initDatabase() async {
     var documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, _databaseName);
-    return await openDatabase(path,
+    var db = await openDatabase(path,
         version: _databaseVersion, onCreate: _onCreate);
+    await db.execute('PRAGMA foreign_keys = ON');
+    return db;
   }
 
   Future _onCreate(Database db, int version) async {
-    await db.execute('''
-    CREATE TABLE $timetableTable (
-      $timetableId INTEGER PRIMARY KEY AUTOINCREMENT,
-      $timetableSubject TEXT NOT NULL,
-      $timetableClassroom TEXT NOT NULL,
-      $timetableDayOfWeek TEXT NOT NULL,
-      $timetablePeriod INTEGER NOT NULL CHECK ($classPeriodPeriod BETWEEN 1 AND 8),
-      UNIQUE ($timetableDayOfWeek, $timetablePeriod)
-    )
-  ''');
     await db.execute('''
     CREATE TABLE $classPeriodTable (
       $classPeriodId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -120,16 +112,27 @@ class DatabaseHelper {
       $classPeriodEndTime TEXT NOT NULL
     )
   ''');
+    await db.execute('''
+      CREATE TABLE $timetableTable (
+       $timetableId INTEGER PRIMARY KEY AUTOINCREMENT,
+       $timetableSubject TEXT NOT NULL,
+       $timetableClassroom TEXT NOT NULL,
+       $timetableDayOfWeek TEXT NOT NULL,
+       $timetablePeriod INTEGER NOT NULL,
+       UNIQUE ($timetableDayOfWeek, $timetablePeriod),
+        FOREIGN KEY ($timetablePeriod) REFERENCES $classPeriodTable($classPeriodPeriod) ON DELETE RESTRICT
+      )
+    ''');
 
     // サンプルデータを追加
-    await db.insert(timetableTable,
-        {'subject': '数学', 'classroom': '101', 'day_of_week': '月', 'period': 1});
-    await db.insert(timetableTable,
-        {'subject': '英語', 'classroom': '102', 'day_of_week': '火', 'period': 2});
     await db.insert(classPeriodTable,
         {'period': 1, 'start_time': '09:00', 'end_time': '10:00'});
     await db.insert(classPeriodTable,
         {'period': 2, 'start_time': '10:10', 'end_time': '11:10'});
+    await db.insert(timetableTable,
+        {'subject': '数学', 'classroom': '101', 'day_of_week': '月', 'period': 1});
+    await db.insert(timetableTable,
+        {'subject': '英語', 'classroom': '102', 'day_of_week': '火', 'period': 2});
   }
 
   Future<int> insertTimetable(Timetable timetable) async {
