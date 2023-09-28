@@ -13,7 +13,7 @@ class EditTab extends StatefulWidget {
 class _EditTabState extends State<EditTab> {
   late String selectedDayOfWeek = '月曜日';
   late String selectedPeriod = '1時限';
-  late String selectedPeriodSetTime = '1時限';
+  //late String selectedPeriodSetTime = '1時限';
   late TimeOfDay startTime = const TimeOfDay(hour: 0, minute: 0);
   late TimeOfDay endTime = const TimeOfDay(hour: 0, minute: 0);
   final TextEditingController classNameController = TextEditingController();
@@ -42,7 +42,7 @@ class _EditTabState extends State<EditTab> {
     ClassPeriod? matchedClassPeriod;
     try {
       matchedClassPeriod = classPeriods.firstWhere(
-          (table) => table.period.toString() == selectedPeriodSetTime[0]);
+          (table) => table.period.toString() == selectedPeriod[0]);
     } catch (e) {
       matchedClassPeriod = null;
     }
@@ -210,7 +210,7 @@ class _EditTabState extends State<EditTab> {
                   children: [
                     Flexible(
                       child: DropdownButtonFormField(
-                        value: selectedPeriodSetTime,
+                        value: selectedPeriod,
                         decoration: const InputDecoration(
                           labelText: '時限',
                         ),
@@ -231,7 +231,7 @@ class _EditTabState extends State<EditTab> {
                             .toList(),
                         onChanged: (newValue) {
                           setState(() {
-                            selectedPeriodSetTime = newValue as String;
+                            selectedPeriod = newValue as String;
                           });
                           _setClassPeriodsDataIfExist();
                         },
@@ -282,7 +282,7 @@ class _EditTabState extends State<EditTab> {
                         '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}';
                     String endTimeString =
                         '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}';
-                    _updateClassPeriod(int.parse(selectedPeriodSetTime[0]),
+                    _updateClassPeriod(int.parse(selectedPeriod[0]),
                             startTimeString, endTimeString)
                         .then((success) {
                       if (success == true) {
@@ -290,7 +290,7 @@ class _EditTabState extends State<EditTab> {
                           SnackBar(
                             backgroundColor: Colors.greenAccent,
                             content: Text(
-                              '${selectedPeriodSetTime[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
+                              '${selectedPeriod[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
                               style: const TextStyle(color: Colors.black),
                             ),
                           ),
