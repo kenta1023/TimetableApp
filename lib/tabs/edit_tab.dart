@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
 import '../db_helper.dart';
 
 class EditTab extends StatefulWidget {
@@ -139,7 +140,7 @@ class _EditTabState extends State<EditTab> {
     }
   }
 
-  Future<bool> _updateTimetable(
+  Future<Map<String, dynamic>> _updateTimetable(
       String subject, String classroom, String dayOfWeek, int period) async {
     final db = DatabaseHelper.instance;
     final newTimetable = Timetable(
@@ -148,18 +149,27 @@ class _EditTabState extends State<EditTab> {
       dayOfWeek: dayOfWeek,
       period: period,
     );
+    Map<String, dynamic> resultData = {'success': false, 'message': 'エラー.'};
     try {
       int result = await db.insertTimetable(newTimetable);
       if (result != 0) {
         // データベースからデータを再取得
         timetables = await db.getAllTimetables();
+
+        resultData['success'] = true;
+        resultData['message'] = '成功';
       }
-      _setTimetableDataIfExist();
-      return result != 0;
     } catch (e) {
-      _setTimetableDataIfExist();
-      return false;
+      if (e is DatabaseException &&
+          e.toString().contains("FOREIGN KEY constraint failed")) {
+        // ここでFOREIGN KEY違反
+        resultData['message'] = 'エラー:$period限の開始時刻と終了時刻を登録する必要があります';
+      } else {
+        resultData['message'] = 'エラー';
+      }
     }
+    _setTimetableDataIfExist();
+    return resultData;
   }
 
   Future<bool> _deleteTimetable(String dayOfWeek, int period) async {
@@ -321,7 +331,7 @@ class _EditTabState extends State<EditTab> {
                         decoration: const InputDecoration(
                           labelText: '曜日',
                         ),
-                        items: ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日',"土曜日","日曜日"]
+                        items: ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日', "土曜日", "日曜日"]
                             .map((day) => DropdownMenuItem(
                                   value: day,
                                   child: Text(day),
@@ -389,8 +399,8 @@ class _EditTabState extends State<EditTab> {
                                 classroomNameController.text,
                                 selectedDayOfWeek[0],
                                 int.parse(selectedPeriod[0]))
-                            .then((success) {
-                          if (success == true) {
+                            .then((result) {
+                          if (result['success'] == true) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 backgroundColor: Colors.greenAccent,
@@ -402,10 +412,11 @@ class _EditTabState extends State<EditTab> {
                             );
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 backgroundColor: Colors.redAccent,
-                                content: Text('登録/更新に失敗しました',
-                                    style: TextStyle(color: Colors.black)),
+                                content: Text(result['message'],
+                                    style:
+                                        const TextStyle(color: Colors.black)),
                               ),
                             );
                           }
@@ -415,59 +426,65 @@ class _EditTabState extends State<EditTab> {
                     ),
                     const SizedBox(width: 20),
                     ElevatedButton(
-                      onPressed: isTimetableDataExist ? () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text('確認'),
-                              content: Text(
-                                  '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限${classNameController.text} \nを本当に削除しますか？'),
-                              actions: [
-                                TextButton(
-                                  child: const Text('キャンセル'),
-                                  onPressed: () {
-                                    Navigator.of(context).pop(); //ダイアログを閉じる
-                                  },
-                                ),
-                                TextButton(
-                                  child: const Text('削除'),
-                                  onPressed: () {
-                                    _deleteTimetable(selectedDayOfWeek[0],
-                                            int.parse(selectedPeriod[0]))
-                                        .then((success) {
-                                      Navigator.of(context).pop(); //先にダイアログを閉じる
-                                      if (success == true) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            backgroundColor: Colors.greenAccent,
-                                            content: Text(
-                                              '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限 \n削除しました',
-                                              style: const TextStyle(
-                                                  color: Colors.black),
-                                            ),
-                                          ),
-                                        );
-                                      } else {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                            backgroundColor: Colors.redAccent,
-                                            content: Text('削除に失敗しました',
-                                                style: TextStyle(
-                                                    color: Colors.black)),
-                                          ),
-                                        );
-                                      }
-                                    });
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      }: null, // isTimetableDataExistがfalseの場合nullをセットしてボタンを無効化
+                      onPressed: isTimetableDataExist
+                          ? () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: const Text('確認'),
+                                    content: Text(
+                                        '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限${classNameController.text} \nを本当に削除しますか？'),
+                                    actions: [
+                                      TextButton(
+                                        child: const Text('キャンセル'),
+                                        onPressed: () {
+                                          Navigator.of(context)
+                                              .pop(); //ダイアログを閉じる
+                                        },
+                                      ),
+                                      TextButton(
+                                        child: const Text('削除'),
+                                        onPressed: () {
+                                          _deleteTimetable(selectedDayOfWeek[0],
+                                                  int.parse(selectedPeriod[0]))
+                                              .then((success) {
+                                            Navigator.of(context)
+                                                .pop(); //先にダイアログを閉じる
+                                            if (success == true) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  backgroundColor:
+                                                      Colors.greenAccent,
+                                                  content: Text(
+                                                    '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限 \n削除しました',
+                                                    style: const TextStyle(
+                                                        color: Colors.black),
+                                                  ),
+                                                ),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  backgroundColor:
+                                                      Colors.redAccent,
+                                                  content: Text('削除に失敗しました',
+                                                      style: TextStyle(
+                                                          color: Colors.black)),
+                                                ),
+                                              );
+                                            }
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            }
+                          : null, // isTimetableDataExistがfalseの場合nullをセットしてボタンを無効化
                       child: const Text('　削除　'),
                     ),
                   ],
