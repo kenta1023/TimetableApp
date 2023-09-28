@@ -69,7 +69,7 @@ class _HomeTabState extends State<HomeTab> {
       ClassPeriod? targetPeriod = getClassPeriodByPeriod(period);
       if (targetPeriod == null) {
         // 引数で受け取ったperiodのデータがない場合
-        return {'hours': 0, 'minutes': 0, 'seconds': 0};
+        return {'hours': 0, 'minutes': 0, 'seconds': 0, 'totalSeconds': 0};
       }
       // startTimeを今日のDateTime形式に変換
       List<String> startTimes = targetPeriod.startTime.split(':');
@@ -84,7 +84,8 @@ class _HomeTabState extends State<HomeTab> {
       return {
         'hours': totalSeconds ~/ 3600,
         'minutes': (totalSeconds % 3600) ~/ 60,
-        'seconds': totalSeconds % 60
+        'seconds': totalSeconds % 60,
+        'totalSeconds': totalSeconds,
       };
     }
 
@@ -98,15 +99,20 @@ class _HomeTabState extends State<HomeTab> {
       String timeDetails = periodDetails != null
           ? "${periodDetails.startTime}~${periodDetails.endTime}"
           : "時間が設定されていません";
-      cardListData.add(
-        CardData(
-            countdown['hours']!,
-            countdown['minutes']!,
-            countdown['seconds']!,
-            timetable.subject,
-            "教室:${timetable.classroom}",
-            "${timetable.period}限:($timeDetails)"),
-      );
+      if (countdown['totalSeconds']! >= 0){
+        // カウントダウンが0以上の場合のみ表示
+        // cardListDataに追加
+        cardListData.add(
+          CardData(
+              countdown['hours']!,
+              countdown['minutes']!,
+              countdown['seconds']!,
+              timetable.subject,
+              "教室:${timetable.classroom}",
+              "${timetable.period}限:($timeDetails)"),
+        );
+
+      }
     }
     setState(() {});
   }
