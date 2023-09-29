@@ -136,7 +136,6 @@ class _EditTabState extends State<EditTab> {
       _setClassPeriodsDataIfExist();
       return result != 0;
     } catch (e) {
-      print(e);
       _setClassPeriodsDataIfExist();
       return false;
     }
@@ -351,44 +350,16 @@ class _EditTabState extends State<EditTab> {
                                 matchedClassPeriod.startTime !=
                                     startTimeString ||
                                 matchedClassPeriod.endTime != endTimeString) {
-                              _updateClassPeriod(int.parse(selectedPeriod[0]),  //データベース更新
-                                      startTimeString, endTimeString)
-                                  .then((success) {
-                                if (success == true) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      backgroundColor: Colors.greenAccent,
-                                      content: Text(
-                                        '${selectedPeriod[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
-                                        style: const TextStyle(
-                                            color: Colors.black),
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      backgroundColor: Colors.redAccent,
-                                      content: Text('登録/更新に失敗しました',
-                                          style:
-                                              TextStyle(color: Colors.black)),
-                                    ),
-                                  );
-                                }
-                              });
-                            }
-                            _updateTimetable(
-                                    classNameController.text,
-                                    classroomNameController.text,
-                                    selectedDayOfWeek[0],
-                                    int.parse(selectedPeriod[0]))
-                                .then((result) {
-                              if (result['success'] == true) {
+                              bool success = await _updateClassPeriod(
+                                  int.parse(selectedPeriod[0]),
+                                  startTimeString,
+                                  endTimeString);
+                              if (success) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     backgroundColor: Colors.greenAccent,
                                     content: Text(
-                                      '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限${classNameController.text} \n登録/更新しました',
+                                      '${selectedPeriod[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
                                       style:
                                           const TextStyle(color: Colors.black),
                                     ),
@@ -396,15 +367,41 @@ class _EditTabState extends State<EditTab> {
                                 );
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
+                                  const SnackBar(
                                     backgroundColor: Colors.redAccent,
-                                    content: Text(result['message'],
-                                        style: const TextStyle(
-                                            color: Colors.black)),
+                                    content: Text('登録/更新に失敗しました',
+                                        style: TextStyle(color: Colors.black)),
                                   ),
                                 );
                               }
-                            });
+                            }
+
+                            Map<String, dynamic> result =
+                                await _updateTimetable(
+                                    classNameController.text,
+                                    classroomNameController.text,
+                                    selectedDayOfWeek[0],
+                                    int.parse(selectedPeriod[0]));
+                            if (result['success'] == true) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: Colors.greenAccent,
+                                  content: Text(
+                                    '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限${classNameController.text} \n登録/更新しました',
+                                    style: const TextStyle(color: Colors.black),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: Colors.redAccent,
+                                  content: Text(result['message'],
+                                      style:
+                                          const TextStyle(color: Colors.black)),
+                                ),
+                              );
+                            }
                           }
                         },
                         child: const Text('登録/更新'),
