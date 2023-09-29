@@ -41,8 +41,8 @@ class _EditTabState extends State<EditTab> {
     // データベースから取得したデータの中から、`period`が一致するデータを取得
     ClassPeriod? matchedClassPeriod;
     try {
-      matchedClassPeriod = classPeriods.firstWhere(
-          (table) => table.period.toString() == selectedPeriod[0]);
+      matchedClassPeriod = classPeriods
+          .firstWhere((table) => table.period.toString() == selectedPeriod[0]);
     } catch (e) {
       matchedClassPeriod = null;
     }
@@ -196,123 +196,6 @@ class _EditTabState extends State<EditTab> {
         children: [
           Container(
             padding: const EdgeInsets.all(10.0),
-            margin: const EdgeInsets.symmetric(vertical: 8.0),
-            decoration: BoxDecoration(
-              color: Colors.green[100], // Container color
-              borderRadius: BorderRadius.circular(10), // Rounded corners
-            ),
-            child: Column(
-              children: [
-                const Text("授業時間設定",
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Row(
-                  children: [
-                    Flexible(
-                      child: DropdownButtonFormField(
-                        value: selectedPeriod,
-                        decoration: const InputDecoration(
-                          labelText: '時限',
-                        ),
-                        items: [
-                          '1時限',
-                          '2時限',
-                          '3時限',
-                          '4時限',
-                          '5時限',
-                          '6時限',
-                          '7時限',
-                          '8時限'
-                        ]
-                            .map((time) => DropdownMenuItem(
-                                  value: time,
-                                  child: Text(time),
-                                ))
-                            .toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            selectedPeriod = newValue as String;
-                          });
-                          _setClassPeriodsDataIfExist();
-                        },
-                      ),
-                    ),
-                    Flexible(
-                      child: TextButton(
-                          onPressed: () => _selectStartTime(context),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "開始",
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                    fontSize: 10, color: Colors.black),
-                              ),
-                              Text(
-                                '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}',
-                                style: const TextStyle(fontSize: 25),
-                              )
-                            ],
-                          )),
-                    ),
-                    Flexible(
-                      child: TextButton(
-                          onPressed: () => _selectEndTime(context),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "終了",
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                    fontSize: 10, color: Colors.black),
-                              ),
-                              Text(
-                                '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}',
-                                style: const TextStyle(fontSize: 25),
-                              )
-                            ],
-                          )),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10.0),
-                ElevatedButton(
-                  onPressed: () async {
-                    String startTimeString =
-                        '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}';
-                    String endTimeString =
-                        '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}';
-                    _updateClassPeriod(int.parse(selectedPeriod[0]),
-                            startTimeString, endTimeString)
-                        .then((success) {
-                      if (success == true) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: Colors.greenAccent,
-                            content: Text(
-                              '${selectedPeriod[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
-                              style: const TextStyle(color: Colors.black),
-                            ),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            backgroundColor: Colors.redAccent,
-                            content: Text('登録/更新に失敗しました',
-                                style: TextStyle(color: Colors.black)),
-                          ),
-                        );
-                      }
-                    });
-                  },
-                  child: const Text('登録/更新'),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(10.0),
             margin: const EdgeInsets.symmetric(vertical: 32.0),
             decoration: BoxDecoration(
               color: Colors.blue[100], // Container color
@@ -376,6 +259,48 @@ class _EditTabState extends State<EditTab> {
                     )
                   ],
                 ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: TextButton(
+                          onPressed: () => _selectStartTime(context),
+                          child: Row(
+                            children: [
+                              const Text(
+                                "開始",
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.black),
+                              ),
+                              const SizedBox(width: 10.0),
+                              Text(
+                                '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}',
+                                style: const TextStyle(fontSize: 25),
+                              )
+                            ],
+                          )),
+                    ),
+                    Flexible(
+                      child: TextButton(
+                          onPressed: () => _selectEndTime(context),
+                          child: Row(
+                            children: [
+                              const Text(
+                                "終了",
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.black),
+                              ),
+                              const SizedBox(width: 10.0),
+                              Text(
+                                '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}',
+                                style: const TextStyle(fontSize: 25),
+                              )
+                            ],
+                          )),
+                    ),
+                  ],
+                ),
                 TextFormField(
                   controller: classNameController,
                   decoration: const InputDecoration(
@@ -394,6 +319,33 @@ class _EditTabState extends State<EditTab> {
                   children: [
                     ElevatedButton(
                       onPressed: () async {
+                        String startTimeString =
+                            '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}';
+                        String endTimeString =
+                            '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}';
+                        _updateClassPeriod(int.parse(selectedPeriod[0]),
+                                startTimeString, endTimeString)
+                            .then((success) {
+                          if (success == true) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: Colors.greenAccent,
+                                content: Text(
+                                  '${selectedPeriod[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
+                                  style: const TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.redAccent,
+                                content: Text('登録/更新に失敗しました',
+                                    style: TextStyle(color: Colors.black)),
+                              ),
+                            );
+                          }
+                        });
                         _updateTimetable(
                                 classNameController.text,
                                 classroomNameController.text,
