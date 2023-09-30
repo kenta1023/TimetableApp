@@ -5,6 +5,49 @@ import '../db_helper.dart';
 class EditTab extends StatefulWidget {
   const EditTab({Key? key}) : super(key: key);
 
+  static Future<Map<String, dynamic>> updateTimetableDB(
+      String subject, String classroom, String dayOfWeek, int period) async {
+    final db = DatabaseHelper.instance;
+    final newTimetable = Timetable(
+      subject: subject,
+      classroom: classroom,
+      dayOfWeek: dayOfWeek,
+      period: period,
+    );
+    Map<String, dynamic> resultData = {'success': false, 'message': 'エラー.'};
+    // subjectが空文字列の場合のエラーチェックを追加
+    if (subject.isEmpty) {
+      resultData['message'] = 'エラー: 教科名の入力が必要です'; 
+      return resultData;
+    }
+    try {
+      int result = await db.insertTimetable(newTimetable);
+      if (result != 0) {
+        resultData['success'] = true;
+        resultData['message'] = '成功';
+      }
+    } catch (e) {
+      if (e is DatabaseException &&
+          e.toString().contains("FOREIGN KEY constraint failed")) {
+        // ここでFOREIGN KEY違反
+        resultData['message'] = 'エラー:$period限の開始時刻と終了時刻を登録する必要があります';
+      } else {
+        resultData['message'] = 'エラー';
+      }
+    }
+    return resultData;
+  }
+
+  static Future<bool> deleteTimetableDB(String dayOfWeek, int period) async {
+    final db = DatabaseHelper.instance;
+    try {
+      int result = await db.deleteByDayAndPeriod(dayOfWeek, period);
+      return result != 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   // ignore: library_private_types_in_public_api
   _EditTabState createState() => _EditTabState();
@@ -143,50 +186,22 @@ class _EditTabState extends State<EditTab> {
 
   Future<Map<String, dynamic>> _updateTimetable(
       String subject, String classroom, String dayOfWeek, int period) async {
-    final db = DatabaseHelper.instance;
-    final newTimetable = Timetable(
-      subject: subject,
-      classroom: classroom,
-      dayOfWeek: dayOfWeek,
-      period: period,
-    );
     Map<String, dynamic> resultData = {'success': false, 'message': 'エラー.'};
-    try {
-      int result = await db.insertTimetable(newTimetable);
-      if (result != 0) {
-        // データベースからデータを再取得
-        timetables = await db.getAllTimetables();
-
-        resultData['success'] = true;
-        resultData['message'] = '成功';
-      }
-    } catch (e) {
-      if (e is DatabaseException &&
-          e.toString().contains("FOREIGN KEY constraint failed")) {
-        // ここでFOREIGN KEY違反
-        resultData['message'] = 'エラー:$period限の開始時刻と終了時刻を登録する必要があります';
-      } else {
-        resultData['message'] = 'エラー';
-      }
-    }
+    resultData =
+        await EditTab.updateTimetableDB(subject, classroom, dayOfWeek, period);
+    final db = DatabaseHelper.instance;
+    timetables = await db.getAllTimetables();
     _setTimetableDataIfExist();
     return resultData;
   }
 
   Future<bool> _deleteTimetable(String dayOfWeek, int period) async {
+    bool result = false;
+    result = await EditTab.deleteTimetableDB(dayOfWeek, period);
     final db = DatabaseHelper.instance;
-    try {
-      int result = await db.deleteByDayAndPeriod(dayOfWeek, period);
-      if (result != 0) {
-        // データベースからデータを再取得
-        timetables = await db.getAllTimetables();
-      }
-      _setTimetableDataIfExist();
-      return result != 0;
-    } catch (e) {
-      _setTimetableDataIfExist();
-      return false;
-    }
+    timetables = await db.getAllTimetables();
+    _setTimetableDataIfExist();
+    return result;
   }
 
   @override

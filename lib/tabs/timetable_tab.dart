@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../db_helper.dart';
+import './edit_tab.dart';
 
 class TimetableTab extends StatefulWidget {
   const TimetableTab({Key? key}) : super(key: key);
@@ -15,6 +18,7 @@ class _TimetableTabState extends State<TimetableTab> {
   late List<ClassPeriod> classPeriods;
   int maxPeriod = 0;
   int maxDayOfWeek = 5;
+  double containerHeight = 112.0;
 
   @override
   void initState() {
@@ -59,58 +63,165 @@ class _TimetableTabState extends State<TimetableTab> {
     }
   }
 
+  Future<void> _showInputDialog(BuildContext context, String dayOfWeek,
+      int period, Timetable? selectedTimetable) async {
+    await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        final classTime = getClassTimeByPeriod(period);
+        String subject = selectedTimetable?.subject ?? '';
+        String classroom = selectedTimetable?.classroom ?? '';
+        TextEditingController subjectController =
+            TextEditingController(text: subject);
+        TextEditingController roomController =
+            TextEditingController(text: classroom);
+        return AlertDialog(
+          title: Text(
+              '$dayOfWeek $period限(${classTime?.startTime}~${classTime?.endTime})'),
+          content: Container(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: subjectController,
+                  decoration: const InputDecoration(labelText: '教科名'),
+                ),
+                TextField(
+                  controller: roomController,
+                  decoration: const InputDecoration(labelText: '教室'),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('閉じる'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              onPressed: selectedTimetable != null
+                  ? () async {
+                      final result =
+                          await EditTab.deleteTimetableDB(dayOfWeek, period);
+                      if (result == false) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            backgroundColor: Colors.redAccent,
+                            content: Text(
+                              'データの削除に失敗しました',
+                              style: TextStyle(
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      _loadData();
+                      Navigator.of(context).pop(subjectController.text);
+                    }
+                  : null,
+              child: const Text('削除'), 
+            ),
+            TextButton(
+              child: const Text('登録/更新'), // const キーワードを削除
+              onPressed: () async {
+                final result = await EditTab.updateTimetableDB(
+                  subjectController.text,
+                  roomController.text,
+                  dayOfWeek,
+                  period,
+                );
+                if (result['success'] == false) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: Colors.redAccent,
+                      content: Text(
+                        '${result['message']}',
+                        style: const TextStyle(
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                _loadData();
+                Navigator.of(context).pop(subjectController.text);
+              },
+            )
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      child: Table(
-        columnWidths: const {
-          0: IntrinsicColumnWidth(),
-        },
-        border: TableBorder.all(),
-        children: List.generate(maxPeriod + 1, (period) {
-          return TableRow(
-            children: List.generate(maxDayOfWeek + 1, (dayIndex) {
-              // 1列の表示
-              if (dayIndex == 0) {
-                if (period == 0) return const SizedBox(); // １行１列
-                final classTime = getClassTimeByPeriod(period);
-                return TableCell( // 1列2行~ の時限の表示
-                  child: Container(
-                    color: Colors.grey[300],
-                    child: Center(
-                        child: Text(
-                            '${classTime?.startTime}\n$period\n${classTime?.endTime}')),
-                  ),
-                );
-              }
+    return SingleChildScrollView(
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Table(
+          columnWidths: const {
+            0: IntrinsicColumnWidth(),
+          },
+          border: TableBorder.all(),
+          children: List.generate(maxPeriod + 1, (period) {
+            return TableRow(
+              children: List.generate(maxDayOfWeek + 1, (dayIndex) {
+                // 1列の表示
+                if (dayIndex == 0) {
+                  if (period == 0) return const SizedBox(); // １行１列
+                  final classTime = getClassTimeByPeriod(period);
+                  return TableCell(
+                    // 1列2行~ の時限の表示
+                    child: Container(
+                      height: containerHeight,
+                      color: Colors.grey[300],
+                      child: Center(
+                          child: Text(
+                              '${classTime?.startTime}\n$period\n${classTime?.endTime}')),
+                    ),
+                  );
+                }
 
-              // 1行2列~ の曜日の表示
-              if (period == 0) {
+                // 1行2列~ の曜日の表示
+                if (period == 0) {
+                  return TableCell(
+                    child: Container(
+                      //height: 60.0,
+                      color: Colors.grey[300],
+                      child: Center(child: Text(daysOfWeek[dayIndex])),
+                    ),
+                  );
+                }
+                // 2行2列~ の授業の表示
+                Timetable? subject =
+                    getSubjectForDayAndPeriod(daysOfWeek[dayIndex], period);
                 return TableCell(
-                  child: Container(
-                    color: Colors.grey[300],
-                    child: Center(child: Text(daysOfWeek[dayIndex])),
+                  child: InkWell(
+                    onTap: () => _showInputDialog(
+                        context, daysOfWeek[dayIndex], period, subject),
+                    child: Container(
+                      height: containerHeight,
+                      child: Center(
+                        child: subject == null
+                            ? const Text('')
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(subject.subject),
+                                  Text(subject.classroom),
+                                ],
+                              ),
+                      ),
+                    ),
                   ),
                 );
-              }
-              // 2行2列~ の授業の表示
-              Timetable? subject =
-                  getSubjectForDayAndPeriod(daysOfWeek[dayIndex], period);
-              return Center(
-                child: subject == null
-                    ? const Text('')
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(subject.subject),
-                          Text(subject.classroom),
-                        ],
-                      ),
-              );
-            }),
-          );
-        }),
+              }),
+            );
+          }),
+        ),
       ),
     );
   }
