@@ -38,26 +38,20 @@ class Timetable {
 }
 
 class ClassPeriod {
-  int? id;
   int period;
   String startTime; // Format: 'HH:mm'
   String endTime; // Format: 'HH:mm'
 
   ClassPeriod(
-      {required this.period,
-      required this.startTime,
-      required this.endTime,
-      this.id});
+      {required this.period, required this.startTime, required this.endTime});
 
   ClassPeriod.fromMap(Map<String, dynamic> map)
-      : id = map['id'],
-        period = map['period'],
+      : period = map['period'],
         startTime = map['start_time'],
         endTime = map['end_time'];
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'period': period,
       'start_time': startTime,
       'end_time': endTime,
@@ -106,8 +100,7 @@ class DatabaseHelper {
   Future _onCreate(Database db, int version) async {
     await db.execute('''
     CREATE TABLE $classPeriodTable (
-      $classPeriodId INTEGER PRIMARY KEY AUTOINCREMENT,
-      $classPeriodPeriod INTEGER NOT NULL UNIQUE CHECK ($classPeriodPeriod BETWEEN 1 AND 8),
+      $classPeriodPeriod INTEGER PRIMARY KEY NOT NULL CHECK ($classPeriodPeriod BETWEEN 1 AND 8),
       $classPeriodStartTime TEXT NOT NULL,
       $classPeriodEndTime TEXT NOT NULL
     )
@@ -120,10 +113,9 @@ class DatabaseHelper {
        $timetableDayOfWeek TEXT NOT NULL,
        $timetablePeriod INTEGER NOT NULL,
        UNIQUE ($timetableDayOfWeek, $timetablePeriod),
-        FOREIGN KEY ($timetablePeriod) REFERENCES $classPeriodTable($classPeriodPeriod) ON DELETE RESTRICT
+       FOREIGN KEY ($timetablePeriod) REFERENCES $classPeriodTable($classPeriodPeriod) ON DELETE RESTRICT
       )
     ''');
-
     // サンプルデータを追加
     await db.insert(classPeriodTable,
         {'period': 1, 'start_time': '09:00', 'end_time': '10:00'});
@@ -152,8 +144,21 @@ class DatabaseHelper {
 
   Future<int> insertClassPeriod(ClassPeriod classPeriod) async {
     Database db = await database;
-    return await db.insert(classPeriodTable, classPeriod.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    // まず、同じ 'period' を持つレコードが存在するかを確認します。
+    var res = await db.query(classPeriodTable,
+        where: '$classPeriodPeriod = ?', whereArgs: [classPeriod.period]);
+    if (res.isNotEmpty) {
+      // レコードが存在する場合、UPDATE文を使用してレコードを更新します。
+      return await db.update(
+        classPeriodTable,
+        classPeriod.toMap(),
+        where: '$classPeriodPeriod = ?',
+        whereArgs: [classPeriod.period],
+      );
+    } else {
+      // レコードが存在しない場合、新しいレコードを挿入します。
+      return await db.insert(classPeriodTable, classPeriod.toMap());
+    }
   }
 
   Future<List<Timetable>> getAllTimetables() async {

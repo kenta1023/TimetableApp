@@ -11,9 +11,10 @@ class EditTab extends StatefulWidget {
 }
 
 class _EditTabState extends State<EditTab> {
+  final _formKey = GlobalKey<FormState>();
   late String selectedDayOfWeek = '月曜日';
   late String selectedPeriod = '1時限';
-  late String selectedPeriodSetTime = '1時限';
+  //late String selectedPeriodSetTime = '1時限';
   late TimeOfDay startTime = const TimeOfDay(hour: 0, minute: 0);
   late TimeOfDay endTime = const TimeOfDay(hour: 0, minute: 0);
   final TextEditingController classNameController = TextEditingController();
@@ -41,8 +42,8 @@ class _EditTabState extends State<EditTab> {
     // データベースから取得したデータの中から、`period`が一致するデータを取得
     ClassPeriod? matchedClassPeriod;
     try {
-      matchedClassPeriod = classPeriods.firstWhere(
-          (table) => table.period.toString() == selectedPeriodSetTime[0]);
+      matchedClassPeriod = classPeriods
+          .firstWhere((table) => table.period.toString() == selectedPeriod[0]);
     } catch (e) {
       matchedClassPeriod = null;
     }
@@ -192,307 +193,292 @@ class _EditTabState extends State<EditTab> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10.0),
-            margin: const EdgeInsets.symmetric(vertical: 8.0),
-            decoration: BoxDecoration(
-              color: Colors.green[100], // Container color
-              borderRadius: BorderRadius.circular(10), // Rounded corners
-            ),
-            child: Column(
-              children: [
-                const Text("授業時間設定",
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Row(
-                  children: [
-                    Flexible(
-                      child: DropdownButtonFormField(
-                        value: selectedPeriodSetTime,
-                        decoration: const InputDecoration(
-                          labelText: '時限',
-                        ),
-                        items: [
-                          '1時限',
-                          '2時限',
-                          '3時限',
-                          '4時限',
-                          '5時限',
-                          '6時限',
-                          '7時限',
-                          '8時限'
-                        ]
-                            .map((time) => DropdownMenuItem(
-                                  value: time,
-                                  child: Text(time),
-                                ))
-                            .toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            selectedPeriodSetTime = newValue as String;
-                          });
-                          _setClassPeriodsDataIfExist();
-                        },
-                      ),
-                    ),
-                    Flexible(
-                      child: TextButton(
-                          onPressed: () => _selectStartTime(context),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "開始",
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                    fontSize: 10, color: Colors.black),
-                              ),
-                              Text(
-                                '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}',
-                                style: const TextStyle(fontSize: 25),
-                              )
-                            ],
-                          )),
-                    ),
-                    Flexible(
-                      child: TextButton(
-                          onPressed: () => _selectEndTime(context),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "終了",
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                    fontSize: 10, color: Colors.black),
-                              ),
-                              Text(
-                                '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}',
-                                style: const TextStyle(fontSize: 25),
-                              )
-                            ],
-                          )),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10.0),
-                ElevatedButton(
-                  onPressed: () async {
-                    String startTimeString =
-                        '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}';
-                    String endTimeString =
-                        '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}';
-                    _updateClassPeriod(int.parse(selectedPeriodSetTime[0]),
-                            startTimeString, endTimeString)
-                        .then((success) {
-                      if (success == true) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: Colors.greenAccent,
-                            content: Text(
-                              '${selectedPeriodSetTime[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
-                              style: const TextStyle(color: Colors.black),
-                            ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10.0),
+              margin: const EdgeInsets.symmetric(vertical: 32.0),
+              decoration: BoxDecoration(
+                color: Colors.blue[100], // Container color
+                borderRadius: BorderRadius.circular(10), // Rounded corners
+              ),
+              child: Column(
+                children: [
+                  const Text("授業情報設定",
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: DropdownButtonFormField(
+                          value: selectedDayOfWeek,
+                          decoration: const InputDecoration(
+                            labelText: '曜日',
                           ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            backgroundColor: Colors.redAccent,
-                            content: Text('登録/更新に失敗しました',
-                                style: TextStyle(color: Colors.black)),
+                          items:
+                              ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日', "土曜日", "日曜日"]
+                                  .map((day) => DropdownMenuItem(
+                                        value: day,
+                                        child: Text(day),
+                                      ))
+                                  .toList(),
+                          onChanged: (newValue) {
+                            setState(() {
+                              selectedDayOfWeek = newValue as String;
+                            });
+                            _setTimetableDataIfExist();
+                          },
+                        ),
+                      ),
+                      Flexible(
+                        child: DropdownButtonFormField(
+                          value: selectedPeriod,
+                          decoration: const InputDecoration(
+                            labelText: '時限',
                           ),
-                        );
-                      }
-                    });
-                  },
-                  child: const Text('登録/更新'),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(10.0),
-            margin: const EdgeInsets.symmetric(vertical: 32.0),
-            decoration: BoxDecoration(
-              color: Colors.blue[100], // Container color
-              borderRadius: BorderRadius.circular(10), // Rounded corners
-            ),
-            child: Column(
-              children: [
-                const Text("授業情報設定",
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Row(
-                  children: [
-                    Flexible(
-                      child: DropdownButtonFormField(
-                        value: selectedDayOfWeek,
-                        decoration: const InputDecoration(
-                          labelText: '曜日',
+                          items: [
+                            '1時限',
+                            '2時限',
+                            '3時限',
+                            '4時限',
+                            '5時限',
+                            '6時限',
+                            '7時限',
+                            '8時限'
+                          ]
+                              .map((time) => DropdownMenuItem(
+                                    value: time,
+                                    child: Text(time),
+                                  ))
+                              .toList(),
+                          onChanged: (newValue) {
+                            setState(() {
+                              selectedPeriod = newValue as String;
+                            });
+                            _setTimetableDataIfExist();
+                            _setClassPeriodsDataIfExist();
+                          },
                         ),
-                        items: ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日', "土曜日", "日曜日"]
-                            .map((day) => DropdownMenuItem(
-                                  value: day,
-                                  child: Text(day),
-                                ))
-                            .toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            selectedDayOfWeek = newValue as String;
-                          });
-                          _setTimetableDataIfExist();
-                        },
-                      ),
-                    ),
-                    Flexible(
-                      child: DropdownButtonFormField(
-                        value: selectedPeriod,
-                        decoration: const InputDecoration(
-                          labelText: '時限',
-                        ),
-                        items: [
-                          '1時限',
-                          '2時限',
-                          '3時限',
-                          '4時限',
-                          '5時限',
-                          '6時限',
-                          '7時限',
-                          '8時限'
-                        ]
-                            .map((time) => DropdownMenuItem(
-                                  value: time,
-                                  child: Text(time),
-                                ))
-                            .toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            selectedPeriod = newValue as String;
-                          });
-                          _setTimetableDataIfExist();
-                        },
-                      ),
-                    )
-                  ],
-                ),
-                TextFormField(
-                  controller: classNameController,
-                  decoration: const InputDecoration(
-                    labelText: '授業名',
+                      )
+                    ],
                   ),
-                ),
-                TextFormField(
-                  controller: classroomNameController,
-                  decoration: const InputDecoration(
-                    labelText: '教室名',
-                  ),
-                ),
-                const SizedBox(height: 10.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center, // ウィジェットを中央に配置
-                  children: [
-                    ElevatedButton(
-                      onPressed: () async {
-                        _updateTimetable(
-                                classNameController.text,
-                                classroomNameController.text,
-                                selectedDayOfWeek[0],
-                                int.parse(selectedPeriod[0]))
-                            .then((result) {
-                          if (result['success'] == true) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: Colors.greenAccent,
-                                content: Text(
-                                  '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限${classNameController.text} \n登録/更新しました',
-                                  style: const TextStyle(color: Colors.black),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: TextButton(
+                            onPressed: () => _selectStartTime(context),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  "開始",
+                                  textAlign: TextAlign.left,
+                                  style: TextStyle(
+                                      fontSize: 16, color: Colors.black),
                                 ),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: Colors.redAccent,
-                                content: Text(result['message'],
-                                    style:
-                                        const TextStyle(color: Colors.black)),
-                              ),
-                            );
-                          }
-                        });
-                      },
-                      child: const Text('登録/更新'),
+                                const SizedBox(width: 10.0),
+                                Text(
+                                  '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}',
+                                  style: const TextStyle(fontSize: 25),
+                                )
+                              ],
+                            )),
+                      ),
+                      Flexible(
+                        child: TextButton(
+                            onPressed: () => _selectEndTime(context),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  "終了",
+                                  textAlign: TextAlign.left,
+                                  style: TextStyle(
+                                      fontSize: 16, color: Colors.black),
+                                ),
+                                const SizedBox(width: 10.0),
+                                Text(
+                                  '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}',
+                                  style: const TextStyle(fontSize: 25),
+                                )
+                              ],
+                            )),
+                      ),
+                    ],
+                  ),
+                  TextFormField(
+                    controller: classNameController,
+                    decoration: const InputDecoration(
+                      labelText: '授業名',
                     ),
-                    const SizedBox(width: 20),
-                    ElevatedButton(
-                      onPressed: isTimetableDataExist
-                          ? () {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    title: const Text('確認'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '授業名は必須です';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    controller: classroomNameController,
+                    decoration: const InputDecoration(
+                      labelText: '教室名',
+                    ),
+                  ),
+                  const SizedBox(height: 10.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center, // ウィジェットを中央に配置
+                    children: [
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (_formKey.currentState!.validate()) {
+                            String startTimeString =
+                                '${startTime.hour.toString().padLeft(2, "0")}:${startTime.minute.toString().padLeft(2, "0")}';
+                            String endTimeString =
+                                '${endTime.hour.toString().padLeft(2, "0")}:${endTime.minute.toString().padLeft(2, "0")}';
+                            // 該当するperiodのデータを取得
+                            ClassPeriod? matchedClassPeriod;
+                            try {
+                              matchedClassPeriod = classPeriods.firstWhere(
+                                  (table) =>
+                                      table.period.toString() ==
+                                      selectedPeriod[0]);
+                            } catch (e) {
+                              matchedClassPeriod = null;
+                            }
+                            // 該当するperiodのデータがない、または、startTimeとendTimeが一致しない場合は更新
+                            if (matchedClassPeriod == null ||
+                                matchedClassPeriod.startTime !=
+                                    startTimeString ||
+                                matchedClassPeriod.endTime != endTimeString) {
+                              bool success = await _updateClassPeriod(
+                                  int.parse(selectedPeriod[0]),
+                                  startTimeString,
+                                  endTimeString);
+                              if (success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: Colors.greenAccent,
                                     content: Text(
-                                        '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限${classNameController.text} \nを本当に削除しますか？'),
-                                    actions: [
-                                      TextButton(
-                                        child: const Text('キャンセル'),
-                                        onPressed: () {
-                                          Navigator.of(context)
-                                              .pop(); //ダイアログを閉じる
-                                        },
-                                      ),
-                                      TextButton(
-                                        child: const Text('削除'),
-                                        onPressed: () {
-                                          _deleteTimetable(selectedDayOfWeek[0],
-                                                  int.parse(selectedPeriod[0]))
-                                              .then((success) {
-                                            Navigator.of(context)
-                                                .pop(); //先にダイアログを閉じる
-                                            if (success == true) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  backgroundColor:
-                                                      Colors.greenAccent,
-                                                  content: Text(
-                                                    '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限 \n削除しました',
-                                                    style: const TextStyle(
-                                                        color: Colors.black),
-                                                  ),
-                                                ),
-                                              );
-                                            } else {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                const SnackBar(
-                                                  backgroundColor:
-                                                      Colors.redAccent,
-                                                  content: Text('削除に失敗しました',
-                                                      style: TextStyle(
-                                                          color: Colors.black)),
-                                                ),
-                                              );
-                                            }
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
+                                      '${selectedPeriod[0]}限目($startTimeString ~ $endTimeString) \n登録/更新しました',
+                                      style:
+                                          const TextStyle(color: Colors.black),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    backgroundColor: Colors.redAccent,
+                                    content: Text('登録/更新に失敗しました',
+                                        style: TextStyle(color: Colors.black)),
+                                  ),
+                                );
+                              }
+                            }
+
+                            Map<String, dynamic> result =
+                                await _updateTimetable(
+                                    classNameController.text,
+                                    classroomNameController.text,
+                                    selectedDayOfWeek[0],
+                                    int.parse(selectedPeriod[0]));
+                            if (result['success'] == true) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: Colors.greenAccent,
+                                  content: Text(
+                                    '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限${classNameController.text} \n登録/更新しました',
+                                    style: const TextStyle(color: Colors.black),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: Colors.redAccent,
+                                  content: Text(result['message'],
+                                      style:
+                                          const TextStyle(color: Colors.black)),
+                                ),
                               );
                             }
-                          : null, // isTimetableDataExistがfalseの場合nullをセットしてボタンを無効化
-                      child: const Text('　削除　'),
-                    ),
-                  ],
-                ),
-              ],
+                          }
+                        },
+                        child: const Text('登録/更新'),
+                      ),
+                      const SizedBox(width: 20),
+                      ElevatedButton(
+                        onPressed: isTimetableDataExist
+                            ? () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: const Text('確認'),
+                                      content: Text(
+                                          '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限${classNameController.text} \nを本当に削除しますか？'),
+                                      actions: [
+                                        TextButton(
+                                          child: const Text('キャンセル'),
+                                          onPressed: () {
+                                            Navigator.of(context)
+                                                .pop(); //ダイアログを閉じる
+                                          },
+                                        ),
+                                        TextButton(
+                                          child: const Text('削除'),
+                                          onPressed: () {
+                                            _deleteTimetable(
+                                                    selectedDayOfWeek[0],
+                                                    int.parse(
+                                                        selectedPeriod[0]))
+                                                .then((success) {
+                                              Navigator.of(context)
+                                                  .pop(); //先にダイアログを閉じる
+                                              if (success == true) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    backgroundColor:
+                                                        Colors.greenAccent,
+                                                    content: Text(
+                                                      '${selectedDayOfWeek[0]}曜日${int.parse(selectedPeriod[0])}限 \n削除しました',
+                                                      style: const TextStyle(
+                                                          color: Colors.black),
+                                                    ),
+                                                  ),
+                                                );
+                                              } else {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                    backgroundColor:
+                                                        Colors.redAccent,
+                                                    content: Text('削除に失敗しました',
+                                                        style: TextStyle(
+                                                            color:
+                                                                Colors.black)),
+                                                  ),
+                                                );
+                                              }
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              }
+                            : null, // isTimetableDataExistがfalseの場合nullをセットしてボタンを無効化
+                        child: const Text('　削除　'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
