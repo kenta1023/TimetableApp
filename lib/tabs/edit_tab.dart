@@ -17,7 +17,7 @@ class EditTab extends StatefulWidget {
     Map<String, dynamic> resultData = {'success': false, 'message': 'エラー.'};
     // subjectが空文字列の場合のエラーチェックを追加
     if (subject.isEmpty) {
-      resultData['message'] = 'エラー: 教科名の入力が必要です'; 
+      resultData['message'] = 'エラー: 教科名の入力が必要です';
       return resultData;
     }
     try {
@@ -42,6 +42,22 @@ class EditTab extends StatefulWidget {
     final db = DatabaseHelper.instance;
     try {
       int result = await db.deleteByDayAndPeriod(dayOfWeek, period);
+      return result != 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<bool> updateClassPeriodDB(
+      int period, String startTime, String endTime) async {
+    final db = DatabaseHelper.instance;
+    final newClassPeriod = ClassPeriod(
+      period: period,
+      startTime: startTime,
+      endTime: endTime,
+    );
+    try {
+      int result = await db.insertClassPeriod(newClassPeriod);
       return result != 0;
     } catch (e) {
       return false;
@@ -164,24 +180,11 @@ class _EditTabState extends State<EditTab> {
 
   Future<bool> _updateClassPeriod(
       int period, String startTime, String endTime) async {
+    bool result = await EditTab.updateClassPeriodDB(period, startTime, endTime);
     final db = DatabaseHelper.instance;
-    final newClassPeriod = ClassPeriod(
-      period: period,
-      startTime: startTime,
-      endTime: endTime,
-    );
-    try {
-      int result = await db.insertClassPeriod(newClassPeriod);
-      if (result != 0) {
-        // データベースからデータを再取得
-        classPeriods = await db.getAllClassPeriods();
-      }
-      _setClassPeriodsDataIfExist();
-      return result != 0;
-    } catch (e) {
-      _setClassPeriodsDataIfExist();
-      return false;
-    }
+    classPeriods = await db.getAllClassPeriods();
+    _setClassPeriodsDataIfExist();
+    return result;
   }
 
   Future<Map<String, dynamic>> _updateTimetable(

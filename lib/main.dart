@@ -48,12 +48,25 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  String _getAppBarTitle() {
+    switch (_selectedIndex) {
+      case 0:
+        return 'ホーム';
+      case 1:
+        return '時間割表';
+      case 2:
+        return '追加・削除';
+      default:
+        return 'ホーム';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: Text(_getAppBarTitle()),
       ),
       body: _buildBody(),
       bottomNavigationBar: BottomNavigationBar(
@@ -72,7 +85,9 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
         currentIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
+        onTap: (index) => setState(() {
+          _selectedIndex = index;
+        }),
       ),
     );
   }
