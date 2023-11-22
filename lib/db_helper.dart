@@ -117,14 +117,14 @@ class DatabaseHelper {
       )
     ''');
     // サンプルデータを追加
-    await db.insert(classPeriodTable,
-        {'period': 1, 'start_time': '09:00', 'end_time': '10:00'});
-    await db.insert(classPeriodTable,
-        {'period': 2, 'start_time': '10:10', 'end_time': '11:10'});
-    await db.insert(timetableTable,
-        {'subject': '数学', 'classroom': '101', 'day_of_week': '月', 'period': 1});
-    await db.insert(timetableTable,
-        {'subject': '英語', 'classroom': '102', 'day_of_week': '火', 'period': 2});
+    // await db.insert(classPeriodTable,
+    //     {'period': 1, 'start_time': '09:00', 'end_time': '10:00'});
+    // await db.insert(classPeriodTable,
+    //     {'period': 2, 'start_time': '10:10', 'end_time': '11:10'});
+    // await db.insert(timetableTable,
+    //     {'subject': '数学', 'classroom': '101', 'day_of_week': '月', 'period': 1});
+    // await db.insert(timetableTable,
+    //     {'subject': '英語', 'classroom': '102', 'day_of_week': '火', 'period': 2});
   }
 
   Future<int> insertTimetable(Timetable timetable) async {
